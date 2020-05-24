@@ -22,7 +22,7 @@ go run ./cmd/autopilot-server
 
 ```js
 const s = document.createElement("script");
-s.setAttribute("src", "http://localhost:8000/js/main.js?t="+ new Date().getTime());
+s.setAttribute("src", "http://localhost:8000/loader.js?t="+ new Date().getTime());
 document.body.appendChild(s);
 ```
 
