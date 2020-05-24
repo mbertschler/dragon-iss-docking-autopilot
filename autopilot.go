@@ -62,33 +62,19 @@ func (c *Controller) Correct(now time.Time, offset float64) int {
 	return int(fullClicks)
 }
 
-type Vector struct {
-	X, Y, Z float64
-}
-
 type Input struct {
-	Range       Vector
-	Orientation Vector
-	Rotation    Vector
-	Distance    float64
-	Rate        float64
-	Time        time.Time
+	DistanceX, DistanceY, DistanceZ float64
+	RotationX, RotationY, RotationZ float64
 }
 
 func readInput() *Input {
 	i := &Input{}
-	i.Range.X = selectorValue("#x-range > div")
-	i.Range.Y = selectorValue("#y-range > div")
-	i.Range.Z = selectorValue("#z-range > div")
-	i.Orientation.X = selectorValue("#roll .error")
-	i.Orientation.Y = selectorValue("#pitch .error")
-	i.Orientation.Z = selectorValue("#yaw .error")
-	i.Rotation.X = selectorValue("#roll .rate")
-	i.Rotation.Y = selectorValue("#pitch .rate")
-	i.Rotation.Z = selectorValue("#yaw .rate")
-	i.Distance = selectorValue("#range .rate")
-	i.Rate = selectorValue("#rate .rate")
-	i.Time = time.Now()
+	i.DistanceX = selectorValue("#x-range > div")
+	i.DistanceY = selectorValue("#y-range > div")
+	i.DistanceZ = selectorValue("#z-range > div")
+	i.RotationX = selectorValue("#roll .error")
+	i.RotationY = selectorValue("#pitch .error")
+	i.RotationZ = selectorValue("#yaw .error")
 	return i
 }
 
@@ -147,13 +133,13 @@ func controller(in *Input) *Output {
 	out := &Output{}
 	now := time.Now()
 
-	applyCorrection(RotateXController.Correct(now, in.Orientation.X), out, RotateXNeg, RotateXPos)
-	applyCorrection(RotateYController.Correct(now, in.Orientation.Y), out, RotateYNeg, RotateYPos)
-	applyCorrection(RotateZController.Correct(now, in.Orientation.Z), out, RotateZNeg, RotateZPos)
+	applyCorrection(RotateXController.Correct(now, in.RotationX), out, RotateXNeg, RotateXPos)
+	applyCorrection(RotateYController.Correct(now, in.RotationY), out, RotateYNeg, RotateYPos)
+	applyCorrection(RotateZController.Correct(now, in.RotationZ), out, RotateZNeg, RotateZPos)
 
-	applyCorrection(TranslateXController.Correct(now, in.Range.X), out, TranslateXPos, TranslateXNeg)
-	applyCorrection(TranslateYController.Correct(now, in.Range.Y), out, TranslateYPos, TranslateYNeg)
-	applyCorrection(TranslateZController.Correct(now, in.Range.Z), out, TranslateZPos, TranslateZNeg)
+	applyCorrection(TranslateXController.Correct(now, in.DistanceX), out, TranslateXPos, TranslateXNeg)
+	applyCorrection(TranslateYController.Correct(now, in.DistanceY), out, TranslateYPos, TranslateYNeg)
+	applyCorrection(TranslateZController.Correct(now, in.DistanceZ), out, TranslateZPos, TranslateZNeg)
 
 	return out
 }
