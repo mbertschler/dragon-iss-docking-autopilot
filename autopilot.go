@@ -9,16 +9,37 @@ import (
 	"time"
 )
 
+var rotateParameters = ControllerParameters{
+	DampingCycles: 0.0,
+	Correction:    0.4,
+	RateFactor:    1.5,
+	RateMin:       1.0,
+	RateMax:       5.0,
+}
+
+var approachParameters = ControllerParameters{
+	DampingCycles: 4.0,
+	Correction:    0.3,
+	RateFactor:    .1,
+	RateMin:       0.15,
+	RateMax:       10.0,
+}
+
+var centerParameters = ControllerParameters{
+	DampingCycles: 4.0,
+	Correction:    0.3,
+	RateFactor:    0.2,
+	RateMin:       0.05,
+	RateMax:       5.0,
+}
+
 var IOs = []*ControlledIO{
 	{
 		InputSelector:          "#roll .error",
 		OutputPositiveSelector: "#roll-left-button",
 		OutputNegativeSelector: "#roll-right-button",
 		Controller: Controller{
-			Correction: 0.4,
-			RateFactor: 1.5,
-			RateMin:    1.0,
-			RateMax:    5.0,
+			ControllerParameters: rotateParameters,
 		},
 	},
 	{
@@ -26,10 +47,7 @@ var IOs = []*ControlledIO{
 		OutputPositiveSelector: "#pitch-up-button",
 		OutputNegativeSelector: "#pitch-down-button",
 		Controller: Controller{
-			Correction: 0.4,
-			RateFactor: 1.5,
-			RateMin:    1.0,
-			RateMax:    5.0,
+			ControllerParameters: rotateParameters,
 		},
 	},
 	{
@@ -37,10 +55,7 @@ var IOs = []*ControlledIO{
 		OutputPositiveSelector: "#yaw-left-button",
 		OutputNegativeSelector: "#yaw-right-button",
 		Controller: Controller{
-			Correction: 0.4,
-			RateFactor: 1.5,
-			RateMin:    1.0,
-			RateMax:    5.0,
+			ControllerParameters: rotateParameters,
 		},
 	},
 
@@ -49,11 +64,7 @@ var IOs = []*ControlledIO{
 		OutputPositiveSelector: "#translate-backward-button",
 		OutputNegativeSelector: "#translate-forward-button",
 		Controller: Controller{
-			DampingCycles: 4.0,
-			Correction:    0.3,
-			RateFactor:    .1,
-			RateMin:       0.15,
-			RateMax:       10.0,
+			ControllerParameters: approachParameters,
 		},
 	},
 	{
@@ -61,11 +72,7 @@ var IOs = []*ControlledIO{
 		OutputPositiveSelector: "#translate-right-button",
 		OutputNegativeSelector: "#translate-left-button",
 		Controller: Controller{
-			DampingCycles: 4.0,
-			Correction:    0.4,
-			RateFactor:    0.2,
-			RateMin:       0.05,
-			RateMax:       5.0,
+			ControllerParameters: centerParameters,
 		},
 	},
 	{
@@ -73,11 +80,7 @@ var IOs = []*ControlledIO{
 		OutputPositiveSelector: "#translate-up-button",
 		OutputNegativeSelector: "#translate-down-button",
 		Controller: Controller{
-			DampingCycles: 4.0,
-			Correction:    0.4,
-			RateFactor:    0.2,
-			RateMin:       0.05,
-			RateMax:       5.0,
+			ControllerParameters: centerParameters,
 		},
 	},
 }
@@ -112,13 +115,17 @@ func (c *ControlledIO) Control(now time.Time) {
 	}
 }
 
-type Controller struct {
+type ControllerParameters struct {
 	Correction    float64
 	DampingCycles float64
 	RateFactor    float64
 	RateMin       float64
 	RateMax       float64
 	Print         bool
+}
+
+type Controller struct {
+	ControllerParameters
 
 	previousTime   time.Time
 	previousOffset float64
@@ -148,7 +155,7 @@ func (c *Controller) Correct(now time.Time, offset float64) int {
 
 	correction := target - c.rate
 	c.clicks += correction
-	fullClicks := math.Round(c.clicks)
+	fullClicks := math.Floor(c.clicks)
 	c.clicks -= fullClicks
 
 	if c.Print {
