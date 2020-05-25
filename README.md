@@ -6,7 +6,7 @@ Dragon capsule in the simulator. https://iss-sim.spacex.com
 ## Why
 
 I never used Go and WebAssembly together before. This seemed like a nice and
-small excercise and I also got to refresh my knowledge of controller algorithms.
+small excercise and I also got to refresh controller algorithms.
 
 ## Using this autopilot
 
@@ -25,6 +25,26 @@ const s = document.createElement("script");
 s.setAttribute("src", "http://localhost:8000/loader.js?t="+ new Date().getTime());
 document.body.appendChild(s);
 ```
+
+If you want to make modifications to `autopilot.go`, restart the
+`autopilot-server`, refresh the simulator page and paste the above
+JavaScript code into the console again.
+
+## Controller algorithm
+
+The main controller algorithm is the `correct()` method in `autopilot.go`.
+At first the current rate is calculated using the previous time and offset
+and dampened over some cycles `DampingCycles`.
+
+Then a correction factor `Correction` is used to calculate the target rate.
+This target rate is limited based on the offset and `RateFactor` but kept
+between `RateMin` and `RateMax`.
+
+The difference between target and current rate is then added to a clicks
+accumulator. Full clicks are then subtracted from the accumulator and
+returned from the function.
+
+Play around with the `ios` configuration to get different controller behavior.
 
 ---
 

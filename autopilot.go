@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var rotateParameters = ControllerParameters{
+var rotateParameters = controllerParameters{
 	DampingCycles: 2.0,
 	Correction:    0.5,
 	RateFactor:    0.5,
@@ -18,7 +18,7 @@ var rotateParameters = ControllerParameters{
 }
 
 // Y/Z translation to center on the docking port
-var centerParameters = ControllerParameters{
+var centerParameters = controllerParameters{
 	DampingCycles: 8.0,
 	Correction:    0.3,
 	RateFactor:    0.2,
@@ -27,7 +27,7 @@ var centerParameters = ControllerParameters{
 }
 
 // X translation towards the station
-var approachParameters = ControllerParameters{
+var approachParameters = controllerParameters{
 	DampingCycles: 8.0,
 	Correction:    0.2,
 	RateFactor:    .1,
@@ -35,29 +35,29 @@ var approachParameters = ControllerParameters{
 	RateMax:       3.0,
 }
 
-var IOs = []*ControlledIO{
+var ios = []*controlledIO{
 	{
 		InputSelector:          "#roll .error",
 		OutputPositiveSelector: "#roll-left-button",
 		OutputNegativeSelector: "#roll-right-button",
-		Controller: Controller{
-			ControllerParameters: rotateParameters,
+		Controller: controller{
+			controllerParameters: rotateParameters,
 		},
 	},
 	{
 		InputSelector:          "#pitch .error",
 		OutputPositiveSelector: "#pitch-up-button",
 		OutputNegativeSelector: "#pitch-down-button",
-		Controller: Controller{
-			ControllerParameters: rotateParameters,
+		Controller: controller{
+			controllerParameters: rotateParameters,
 		},
 	},
 	{
 		InputSelector:          "#yaw .error",
 		OutputPositiveSelector: "#yaw-left-button",
 		OutputNegativeSelector: "#yaw-right-button",
-		Controller: Controller{
-			ControllerParameters: rotateParameters,
+		Controller: controller{
+			controllerParameters: rotateParameters,
 		},
 	},
 
@@ -65,49 +65,50 @@ var IOs = []*ControlledIO{
 		InputSelector:          "#x-range > div",
 		OutputPositiveSelector: "#translate-backward-button",
 		OutputNegativeSelector: "#translate-forward-button",
-		Controller: Controller{
-			ControllerParameters: approachParameters,
+		Controller: controller{
+			controllerParameters: approachParameters,
 		},
 	},
 	{
 		InputSelector:          "#y-range > div",
 		OutputPositiveSelector: "#translate-right-button",
 		OutputNegativeSelector: "#translate-left-button",
-		Controller: Controller{
-			ControllerParameters: centerParameters,
+		Controller: controller{
+			controllerParameters: centerParameters,
 		},
 	},
 	{
 		InputSelector:          "#z-range > div",
 		OutputPositiveSelector: "#translate-up-button",
 		OutputNegativeSelector: "#translate-down-button",
-		Controller: Controller{
-			ControllerParameters: centerParameters,
+		Controller: controller{
+			controllerParameters: centerParameters,
 		},
 	},
 }
 
 func main() {
 	// main control loop at 10Hz
+	ticker := time.NewTicker(100 * time.Millisecond)
 	for {
-		time.Sleep(100 * time.Millisecond)
+		<-ticker.C
 		now := time.Now()
-		for _, io := range IOs {
+		for _, io := range ios {
 			io.Control(now)
 		}
 	}
 }
 
-type ControlledIO struct {
-	Controller
+type controlledIO struct {
+	Controller             controller
 	InputSelector          string
 	OutputPositiveSelector string
 	OutputNegativeSelector string
 }
 
-func (c *ControlledIO) Control(now time.Time) {
+func (c *controlledIO) Control(now time.Time) {
 	input := readNumber(c.InputSelector)
-	clicks := c.Controller.Correct(now, input)
+	clicks := c.Controller.correct(now, input)
 	button := c.OutputPositiveSelector
 	if clicks < 0 {
 		clicks *= -1
@@ -118,7 +119,7 @@ func (c *ControlledIO) Control(now time.Time) {
 	}
 }
 
-type ControllerParameters struct {
+type controllerParameters struct {
 	Correction    float64
 	DampingCycles float64
 	RateFactor    float64
@@ -127,8 +128,8 @@ type ControllerParameters struct {
 	Print         bool
 }
 
-type Controller struct {
-	ControllerParameters
+type controller struct {
+	controllerParameters
 
 	previousTime   time.Time
 	previousOffset float64
@@ -136,7 +137,7 @@ type Controller struct {
 	clicks         float64
 }
 
-func (c *Controller) Correct(now time.Time, offset float64) int {
+func (c *controller) correct(now time.Time, offset float64) int {
 	if c.previousTime.IsZero() {
 		// initialize if this is the first cycle
 		c.previousOffset = offset
