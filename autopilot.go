@@ -17,6 +17,7 @@ var rotateParameters = ControllerParameters{
 	RateMax:       1.0,
 }
 
+// Y/Z translation to center on the docking port
 var centerParameters = ControllerParameters{
 	DampingCycles: 8.0,
 	Correction:    0.3,
@@ -25,6 +26,7 @@ var centerParameters = ControllerParameters{
 	RateMax:       1.0,
 }
 
+// X translation towards the station
 var approachParameters = ControllerParameters{
 	DampingCycles: 8.0,
 	Correction:    0.2,
@@ -86,6 +88,7 @@ var IOs = []*ControlledIO{
 }
 
 func main() {
+	// main control loop at 10Hz
 	for {
 		time.Sleep(100 * time.Millisecond)
 		now := time.Now()
@@ -135,26 +138,41 @@ type Controller struct {
 
 func (c *Controller) Correct(now time.Time, offset float64) int {
 	if c.previousTime.IsZero() {
+		// initialize if this is the first cycle
 		c.previousOffset = offset
 		c.previousTime = now
 		return 0
 	}
 
+	// calculate the instant rate between the last cycle and now
 	instantRate := (offset - c.previousOffset) / now.Sub(c.previousTime).Seconds()
+
+	// dampen the instant rate with the previous rate according to DampingCycles
 	c.rate = (c.rate*c.DampingCycles + instantRate) / (c.DampingCycles + 1)
+
+	// proportional correction based on the offset
 	target := offset * -c.Correction
-	offAbs := math.Abs(offset)
-	limitRate := offAbs * c.RateFactor
+
+	// calculate the limit rate based on RateFactor
+	// while making sure rate is > RateMin and < RateMax
+	limitRate := math.Abs(offset) * c.RateFactor
 	if limitRate < c.RateMin {
 		limitRate = c.RateMin
 	}
 	if limitRate > c.RateMax {
 		limitRate = c.RateMax
 	}
+
+	// limit the target rate with the limit rate
 	target = limit(target, limitRate)
 
+	// difference between target and current rate
 	correction := target - c.rate
+
+	// apply correction to clicks accumulator
 	c.clicks += correction
+
+	// take full clicks from accumulator as output
 	fullClicks := math.Floor(c.clicks)
 	c.clicks -= fullClicks
 
@@ -168,6 +186,7 @@ func (c *Controller) Correct(now time.Time, offset float64) int {
 	return int(fullClicks)
 }
 
+// limits the input regardless of sign
 func limit(in, limit float64) float64 {
 	if in > limit {
 		in = limit
