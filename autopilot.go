@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"strconv"
 	"strings"
@@ -10,22 +9,116 @@ import (
 	"time"
 )
 
-var window = js.Global()
+var IOs = []*ControlledIO{
+	{
+		InputSelector:          "#roll .error",
+		OutputPositiveSelector: "#roll-left-button",
+		OutputNegativeSelector: "#roll-right-button",
+		Controller: Controller{
+			Correction: 0.4,
+			RateFactor: 1.5,
+			RateMin:    1.0,
+			RateMax:    5.0,
+		},
+	},
+	{
+		InputSelector:          "#pitch .error",
+		OutputPositiveSelector: "#pitch-up-button",
+		OutputNegativeSelector: "#pitch-down-button",
+		Controller: Controller{
+			Correction: 0.4,
+			RateFactor: 1.5,
+			RateMin:    1.0,
+			RateMax:    5.0,
+		},
+	},
+	{
+		InputSelector:          "#yaw .error",
+		OutputPositiveSelector: "#yaw-left-button",
+		OutputNegativeSelector: "#yaw-right-button",
+		Controller: Controller{
+			Correction: 0.4,
+			RateFactor: 1.5,
+			RateMin:    1.0,
+			RateMax:    5.0,
+		},
+	},
+
+	{
+		InputSelector:          "#x-range > div",
+		OutputPositiveSelector: "#translate-backward-button",
+		OutputNegativeSelector: "#translate-forward-button",
+		Controller: Controller{
+			DampingCycles: 4.0,
+			Correction:    0.3,
+			RateFactor:    .1,
+			RateMin:       0.15,
+			RateMax:       10.0,
+		},
+	},
+	{
+		InputSelector:          "#y-range > div",
+		OutputPositiveSelector: "#translate-right-button",
+		OutputNegativeSelector: "#translate-left-button",
+		Controller: Controller{
+			DampingCycles: 4.0,
+			Correction:    0.4,
+			RateFactor:    0.2,
+			RateMin:       0.05,
+			RateMax:       5.0,
+		},
+	},
+	{
+		InputSelector:          "#z-range > div",
+		OutputPositiveSelector: "#translate-up-button",
+		OutputNegativeSelector: "#translate-down-button",
+		Controller: Controller{
+			DampingCycles: 4.0,
+			Correction:    0.4,
+			RateFactor:    0.2,
+			RateMin:       0.05,
+			RateMax:       5.0,
+		},
+	},
+}
 
 func main() {
 	for {
 		time.Sleep(100 * time.Millisecond)
-		input := readInput()
-		output := controller(input)
-		writeOutput(output)
+		now := time.Now()
+		for _, io := range IOs {
+			io.Control(now)
+		}
+	}
+}
+
+type ControlledIO struct {
+	Controller
+	InputSelector          string
+	OutputPositiveSelector string
+	OutputNegativeSelector string
+}
+
+func (c *ControlledIO) Control(now time.Time) {
+	input := readNumber(c.InputSelector)
+	clicks := c.Controller.Correct(now, input)
+	button := c.OutputPositiveSelector
+	if clicks < 0 {
+		clicks *= -1
+		button = c.OutputNegativeSelector
+	}
+	for i := 0; i < clicks; i++ {
+		clickButton(button)
 	}
 }
 
 type Controller struct {
-	Correction  float64
-	Damping     float64
-	MaxRateFunc func(offset float64) float64
-	Print       bool
+	Correction    float64
+	DampingCycles float64
+	RateFactor    float64
+	RateMin       float64
+	RateMax       float64
+	Print         bool
 
 	previousTime   time.Time
 	previousOffset float64
@@ -41,12 +134,18 @@ func (c *Controller) Correct(now time.Time, offset float64) int {
 	}
 
 	instantRate := (offset - c.previousOffset) / now.Sub(c.previousTime).Seconds()
-	c.rate = (c.rate*c.Damping + instantRate) / (c.Damping + 1)
+	c.rate = (c.rate*c.DampingCycles + instantRate) / (c.DampingCycles + 1)
 	target := offset * -c.Correction
-	if c.MaxRateFunc != nil {
-		offAbs := math.Abs(offset)
-		target = limit(target, c.MaxRateFunc(offAbs))
+	offAbs := math.Abs(offset)
+	limitRate := offAbs * c.RateFactor
+	if limitRate < c.RateMin {
+		limitRate = c.RateMin
 	}
+	if limitRate > c.RateMax {
+		limitRate = c.RateMax
+	}
+	target = limit(target, limitRate)
+
 	correction := target - c.rate
 	c.clicks += correction
 	fullClicks := math.Round(c.clicks)
@@ -62,96 +161,6 @@ func (c *Controller) Correct(now time.Time, offset float64) int {
 	return int(fullClicks)
 }
 
-type Input struct {
-	DistanceX, DistanceY, DistanceZ float64
-	RotationX, RotationY, RotationZ float64
-}
-
-func readInput() *Input {
-	i := &Input{}
-	i.DistanceX = selectorValue("#x-range > div")
-	i.DistanceY = selectorValue("#y-range > div")
-	i.DistanceZ = selectorValue("#z-range > div")
-	i.RotationX = selectorValue("#roll .error")
-	i.RotationY = selectorValue("#pitch .error")
-	i.RotationZ = selectorValue("#yaw .error")
-	return i
-}
-
-type Output struct {
-	Commands []string
-}
-
-func (o *Output) Add(operation string, times int) {
-	for i := 0; i < times; i++ {
-		o.Commands = append(o.Commands, operation)
-	}
-}
-
-func maxRateX(offset float64) float64 {
-	min := .15
-	max := 10.0
-	rate := offset * .1
-	if rate < min {
-		return min
-	}
-	if rate > max {
-		return max
-	}
-	return rate
-}
-
-func maxRateYZ(offset float64) float64 {
-	min := .05
-	rate := offset * .2
-	if rate < min {
-		return min
-	}
-	return rate
-}
-
-func maxRateRot(offset float64) float64 {
-	min := 1.0
-	rate := offset * 1.5
-	if rate < min {
-		return min
-	}
-	return rate
-}
-
-var (
-	RotateXController = Controller{Damping: 0, Correction: .4, MaxRateFunc: maxRateRot}
-	RotateYController = Controller{Damping: 0, Correction: .4, MaxRateFunc: maxRateRot}
-	RotateZController = Controller{Damping: 0, Correction: .4, MaxRateFunc: maxRateRot}
-
-	TranslateXController = Controller{Damping: 4, Correction: .3, MaxRateFunc: maxRateX}
-	TranslateYController = Controller{Damping: 4, Correction: .3, MaxRateFunc: maxRateYZ}
-	TranslateZController = Controller{Damping: 4, Correction: .3, MaxRateFunc: maxRateYZ}
-)
-
-func controller(in *Input) *Output {
-	out := &Output{}
-	now := time.Now()
-
-	applyCorrection(RotateXController.Correct(now, in.RotationX), out, RotateXNeg, RotateXPos)
-	applyCorrection(RotateYController.Correct(now, in.RotationY), out, RotateYNeg, RotateYPos)
-	applyCorrection(RotateZController.Correct(now, in.RotationZ), out, RotateZNeg, RotateZPos)
-
-	applyCorrection(TranslateXController.Correct(now, in.DistanceX), out, TranslateXPos, TranslateXNeg)
-	applyCorrection(TranslateYController.Correct(now, in.DistanceY), out, TranslateYPos, TranslateYNeg)
-	applyCorrection(TranslateZController.Correct(now, in.DistanceZ), out, TranslateZPos, TranslateZNeg)
-
-	return out
-}
-
-func applyCorrection(clicks int, out *Output, pos, neg string) {
-	if clicks > 0 {
-		out.Add(pos, clicks)
-	} else {
-		out.Add(neg, clicks*-1)
-	}
-}
-
 func limit(in, limit float64) float64 {
 	if in > limit {
 		in = limit
@@ -162,38 +171,20 @@ func limit(in, limit float64) float64 {
 	return in
 }
 
-const (
-	RotateXNeg    = "#roll-left-button"
-	RotateXPos    = "#roll-right-button"
-	RotateYNeg    = "#pitch-up-button"
-	RotateYPos    = "#pitch-down-button"
-	RotateZNeg    = "#yaw-left-button"
-	RotateZPos    = "#yaw-right-button"
-	TranslateXPos = "#translate-backward-button"
-	TranslateXNeg = "#translate-forward-button"
-	TranslateYPos = "#translate-right-button"
-	TranslateYNeg = "#translate-left-button"
-	TranslateZPos = "#translate-up-button"
-	TranslateZNeg = "#translate-down-button"
-)
-
-func writeOutput(out *Output) {
-	for _, cmd := range out.Commands {
-		window.Call("$", cmd).Call("click")
+func readNumber(selector string) float64 {
+	text := js.Global().Call("$", selector).Get("innerText").String()
+	if text == "" {
+		return 0
 	}
+	parts := strings.Fields(text)
+	text = strings.TrimSuffix(parts[0], "°")
+	num, err := strconv.ParseFloat(text, 64)
+	if err != nil {
+		fmt.Printf("can't parse %q as float: %v", text, err)
+	}
+	return num
 }
 
-func selectorValue(selector string) float64 {
-	text := window.Call("$", selector).Get("innerText")
-	num := extractNumber(text.String())
-	out, err := strconv.ParseFloat(num, 64)
-	if err != nil && num != "" {
-		log.Println("ParseFloat ERROR:", err)
-	}
-	return out
-}
-
-func extractNumber(in string) string {
-	parts := strings.Split(in, " ")
-	return strings.TrimSuffix(parts[0], "°")
+func clickButton(selector string) {
+	js.Global().Call("$", selector).Call("click")
 }
