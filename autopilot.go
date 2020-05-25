@@ -13,24 +13,24 @@ var rotateParameters = ControllerParameters{
 	DampingCycles: 2.0,
 	Correction:    0.5,
 	RateFactor:    0.5,
+	RateMin:       0.2,
+	RateMax:       1.0,
+}
+
+var centerParameters = ControllerParameters{
+	DampingCycles: 8.0,
+	Correction:    0.3,
+	RateFactor:    0.2,
 	RateMin:       0.1,
 	RateMax:       1.0,
 }
 
 var approachParameters = ControllerParameters{
-	DampingCycles: 4.0,
-	Correction:    0.3,
+	DampingCycles: 8.0,
+	Correction:    0.2,
 	RateFactor:    .1,
 	RateMin:       0.15,
-	RateMax:       10.0,
-}
-
-var centerParameters = ControllerParameters{
-	DampingCycles: 4.0,
-	Correction:    0.3,
-	RateFactor:    0.2,
-	RateMin:       0.05,
-	RateMax:       5.0,
+	RateMax:       3.0,
 }
 
 var IOs = []*ControlledIO{
@@ -86,7 +86,6 @@ var IOs = []*ControlledIO{
 }
 
 func main() {
-	IOs[1].Print = true
 	for {
 		time.Sleep(100 * time.Millisecond)
 		now := time.Now()
