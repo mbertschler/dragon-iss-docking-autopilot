@@ -1,9 +1,9 @@
 # Dragon ISS Docking Autopilot in Go
 
 Autopilot written in Go and executed as WebAssembly for docking the SpaceX
-Dragon capsule in the simulator. https://iss-sim.spacex.com
+Dragon capsule in the [official simulator](https://iss-sim.spacex.com). 
 
-**Screencast of the autopilot in action:** https://youtu.be/jLTr6UwuSd4
+### [Screencast of the autopilot in action](https://youtu.be/jLTr6UwuSd4)
 
 ## Why
 
