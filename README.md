@@ -3,6 +3,8 @@
 Autopilot written in Go and executed as WebAssembly for docking the SpaceX
 Dragon capsule in the simulator. https://iss-sim.spacex.com
 
+**Screencast of the autopilot in action:** https://youtu.be/jLTr6UwuSd4
+
 ## Why
 
 I never used Go and WebAssembly together before. This seemed like a nice and
