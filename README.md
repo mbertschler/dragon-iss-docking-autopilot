@@ -5,6 +5,8 @@ Dragon capsule in the [official simulator](https://iss-sim.spacex.com).
 
 ### [Screencast of the autopilot in action](https://youtu.be/jLTr6UwuSd4)
 
+<img alt="Autopilot during docking" src="https://mbertschler.com/github/dragon-iss-docking-autopilot/dragon-iss-autopilot-docking.png" width="420px"/>
+
 ## Why
 
 I never used Go and WebAssembly together before. This seemed like a nice and
