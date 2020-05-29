@@ -48,6 +48,11 @@ returned from the function.
 
 Play around with the `ios` configuration to get different controller behavior.
 
+## Contributing
+
+If you improved this autopilot or added a new feature, don't hesitate to open a PR.
+I'm looking forward to see what you will do with it.
+
 ---
 
 Built by [@mbertschler](https://twitter.com/mbertschler)
